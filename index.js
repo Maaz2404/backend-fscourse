@@ -10,6 +10,7 @@ morgan.token('req-body', (request) => {
 
 // Apply Morgan with the custom token
 app.use(morgan(':method :url :status :req-body'));
+app.use(express.static('dist'))
 
 
 let persons = [

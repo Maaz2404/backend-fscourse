@@ -1,5 +1,7 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors  = require('cors')
+
 const app = express()
 app.use(express.json())
 morgan.token('req-body', (request) => {
@@ -8,6 +10,7 @@ morgan.token('req-body', (request) => {
 
 // Apply Morgan with the custom token
 app.use(morgan(':method :url :status :req-body'));
+app.use(cors())
 
 let persons = [
   { 
@@ -101,7 +104,7 @@ app.post('/api/persons', (request, response) => {
 
   persons = persons.concat(person)
 
-  response.json({message:'person added',data : request.body})
+  response.json({message:'person added',data : person})
 })
 
 const PORT = 3001

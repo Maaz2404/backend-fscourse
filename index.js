@@ -4,18 +4,18 @@ const morgan = require('morgan')
 const cors = require('cors')
 const Person = require('./models/person')
 
-const errorHandler = (error, request, response, next) => {
-  console.error(error.message);
+const errorHandler = (error, _, response, next) => {
+  console.error(error.message)
 
   if (error.name === 'CastError') {
-    return response.status(400).send({ error: 'malformatted id' });
+    return response.status(400).send({ error: 'malformatted id' })
   } else if (error.name === 'ValidationError') {
-    return response.status(400).json({ error: error.message });
+    return response.status(400).json({ error: error.message })
   }
-  next(error);
-};
+  next(error)
+}
 
-const unknownEndpoint = (request, response) => {
+const unknownEndpoint = (_, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
@@ -23,35 +23,33 @@ const app = express()
 app.use(express.json())
 app.use(cors())
 morgan.token('req-body', (request) => {
-  return JSON.stringify(request.body); // Convert body to a string
-});
+  return JSON.stringify(request.body) // Convert body to a string
+})
 
 // Apply Morgan with the custom token
-app.use(morgan(':method :url :status :req-body'));
+app.use(morgan(':method :url :status :req-body'))
 app.use(express.static('dist'))
 
 
 
-app.get('/', (request, response) => {
+app.get('/', (_, response) => {
   response.send('<h1>Hello World!</h1>')
 })
 
-app.get('/api/persons', (request, response) => {
+app.get('/api/persons', (_, response) => {
   Person.find({}).then(people => {
     response.json(people)
   })
-  
+
 })
-app.get('/api/persons/info', (request, response) => {
-   
+app.get('/api/persons/info', (_, response) => {
   Person.find({}).then(people => {
     response.send(`
       Phonebook has info for ${people.length} people\n
       ${new Date().toISOString()}
-  `);
+  `)
   })
-  
-});
+})
 
 
 
@@ -63,41 +61,31 @@ app.get('/api/persons/:id', (request, response) => {
       response.json(person)
     }
     else{
-      
       response.status(404).end()
     }
-  })
-  .catch(error => {
+  }).catch(error => {
     console.log(error)
-    response.status(400).send({error:'malformatted id'})
-  })
- 
-
-  
-})
+    response.status(400).send({ error: 'malformatted id' })
+  }) })
 app.delete('/api/persons/:id', (request, response) => {
   const id = request.params.id
   Person.findByIdAndDelete(id).then(result => {
-    console.log("deleted")
+    console.log('deleted', result)
     response.status(204).end()
+  }).catch(error => { console.log(error)
+    response.status(400).send({ error:'malformatted id' })
   })
-  .catch(error => {
-    console.log(error)
-    response.status(400).send({error:'malformatted id'})
-  })
-  
-  
 })
 
 
 
 app.post('/api/persons', (request, response, next) => {
-  const body = request.body;
+  const body = request.body
 
   if (!body.name || !body.number) {
     return response.status(400).json({
       error: 'content missing'
-    });
+    })
   }
 
   Person.findOne({ name: body.name })
@@ -105,24 +93,24 @@ app.post('/api/persons', (request, response, next) => {
       if (person) {
         return response.status(400).json({
           error: 'name must be unique'
-        });
+        })
       }
 
       // Create and save only if name is unique
       const newPerson = new Person({
         name: body.name,
         number: body.number,
-      });
+      })
 
-      return newPerson.save();
+      return newPerson.save()
     })
     .then(savedPerson => {
       if (savedPerson) {
-        response.json(savedPerson);
+        response.json(savedPerson)
       }
     })
-    .catch(error => next(error)); // Handle errors properly
-});
+    .catch(error => next(error)) // Handle errors properly
+})
 
 app.put('/api/persons/:id', (request, response, next) => {
   const id = request.params.id
@@ -139,9 +127,8 @@ app.put('/api/persons/:id', (request, response, next) => {
     return person.save().then(updatedPerson => {
       response.json(updatedPerson)
     })
-  })
-  .catch(error => {
-    next(error) 
+  }).catch(error => {
+    next(error)
   })
 
 })

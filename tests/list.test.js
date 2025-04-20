@@ -1,16 +1,17 @@
-const { test, after,beforeEach, before } = require('node:test')
+const { test, after, beforeEach, before } = require('node:test')
 const assert = require('node:assert')
 const listHelper = require('../utils/list_helper')
 const app = require('../app')
 const supertest = require('supertest')
-
-const api = supertest(app)
 const mongoose = require('mongoose')
+
 const Blog = require('../models/blog')
+const api = supertest(app)
+
 
 initialBlogs = [
   {
-    id: "5a422a851b54a676234d17f7",
+    _id: "5a422a851b54a676234d17f7",
     title: "React patterns",
     author: "Michael Chan",
     url: "https://reactpatterns.com/",
@@ -18,7 +19,7 @@ initialBlogs = [
 
   },
   {
-    id: "5a422aa71b54a676234d17f8",
+    _id: "5a422aa71b54a676234d17f8",
     title: "Go To Statement Considered Harmful",
     author: "Edsger W. Dijkstra",
     url: "http://www.u.arizona.edu/~rubinson/copyright_violations/Go_To_Considered_Harmful.html",
@@ -32,81 +33,68 @@ beforeEach(async () => {
   await Blog.insertMany(initialBlogs)
 }
 )
-test('returns correct amount of blogs',async()=>{
-    const response = await api.get('/api/blogs')
-    const blogs = response.body
-    assert.strictEqual(blogs.length, initialBlogs.length)
-    
+test('returns correct amount of blogs', async () => {
+  const response = await api.get('/api/blogs')
+  const blogs = response.body
+  assert.strictEqual(blogs.length, initialBlogs.length)
+
+})
+test('returns blogs with id', async () => {
+  const response = await api.get('/api/blogs')
+  const blogs = response.body
+  assert.strictEqual(blogs[0].id, initialBlogs[0]._id)
 })
 
+test('adds a new blog', async () => {
+  const newBlog = {
+    title: "New Blog",
+    author: "New Author",
+    url: "https://newblog.com",
+    likes: 10,
+  }
+  await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(201)
+    .expect('Content-Type', /application\/json/)
+  const blogsAtEnd = await api.get('/api/blogs')
+  const titles = blogsAtEnd.body.map(blog => blog.title)
+  assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length + 1)
+  assert(titles.includes('New Blog'))
+})
 
-// describe('total likes', () => {
-//     const listWithOneBlog = [
-//       {
-//         id: '5a422aa71b54a676234d17f8',
-//         title: 'Go To Statement Considered Harmful',
-//         author: 'Edsger W. Dijkstra',
-//         url: 'https://homepages.cwi.nl/~storm/teaching/reader/Dijkstra68.pdf',
-//         likes: 5,
-        
-//       }
-//     ]
-//     const listWithManyBlogs = [
-//         {
-//             id: "5a422a851b54a676234d17f7",
-//             title: "React patterns",
-//             author: "Michael Chan",
-//             url: "https://reactpatterns.com/",
-//             likes: 7,
-            
-//           },
-//           {
-//             id: "5a422aa71b54a676234d17f8",
-//             title: "Go To Statement Considered Harmful",
-//             author: "Edsger W. Dijkstra",
-//             url: "http://www.u.arizona.edu/~rubinson/copyright_violations/Go_To_Considered_Harmful.html",
-//             likes: 5,
-            
-//           },
-//     ]
-    
-//     test('of empty list is zero', () => {
-//         const result = listHelper.totalLikes([])
-//         assert.strictEqual(result, 0)
-//     })
-  
-//     test('when list has only one blog, equals the likes of that', () => {
-//       const result = listHelper.totalLikes(listWithOneBlog)
-//       assert.strictEqual(result, 5)
-//     })
+test('adds a new blog without likes', async () => {
+  const newBlog = {
+    title: "New Blog",
+    author: "New Author",
+    url: "https://newblog.com",
+  }
+  await api.post('/api/blogs')
+    .send(newBlog)
+    .expect(201)
+    .expect('Content-Type', /application\/json/)
+  const response = await api.get('/api/blogs')
+  const blogs = response.body
+  const addedBlog = blogs.find(blog => blog.title === 'New Blog')
+  assert.strictEqual(addedBlog.likes, 0)
 
-//     test('of a bigger list is calculated right', () => {
-//         const result = listHelper.totalLikes(listWithManyBlogs)
-//         assert.strictEqual(result,12)
-//     })
-//   })
-//   describe('favorite blog',() => {
-//     const blog = [
-//         {
-//             id: "5a422a851b54a676234d17f7",
-//             title: "React patterns",
-//             author: "Michael Chan",
-//             url: "https://reactpatterns.com/",
-//             likes: 7,
-            
-//           },
-//           {
-//             id: "5a422aa71b54a676234d17f8",
-//             title: "Go To Statement Considered Harmful",
-//             author: "Edsger W. Dijkstra",
-//             url: "http://www.u.arizona.edu/~rubinson/copyright_violations/Go_To_Considered_Harmful.html",
-//             likes: 5,
-            
-//           },
-//     ]
+})
+test('returns 400 if title or url is missing', async () => {
+  const newBlog = {
+    title: "New Blog",
+    author: "New Author",
+    likes: 10,
+  }
+const response = await api
+    .post('/api/blogs')
+    .send(newBlog)
+    .expect(400)
+  const blogsAtEnd = await api.get('/api/blogs')
+  assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length)
+  assert.strictEqual(response.body.error, 'title or url missing')
+})
 
-//     test('favorite blog is one with most likes',() => {
-//         const result = listHelper.favouriteBlog(blog)
-//         assert.deepStrictEqual(result,blog[0])    
-//     })
-//   })
+after(async () => {
+  await mongoose.connection.close()
+})
+

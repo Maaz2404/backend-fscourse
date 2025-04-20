@@ -9,4 +9,4 @@ if (process.env.NODE_ENV === 'test') {
   MONGODB_URL = process.env.MONGODB_URL_BLOGS;
 }
 
-export { MONGODB_URL, PORT };
+module.exports = { MONGODB_URL, PORT };

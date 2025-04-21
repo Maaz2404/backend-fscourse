@@ -5,6 +5,18 @@ POST http://localhost:3001/api/notes
 Content-Type: application/json
 
 {
-    "content": "Test Note",
-    "important": true
+    "content": "Note by test user",
+    "important": true,
+    "userId": "68065b0cbf71eec521cd2480"
+}
+###
+GET http://localhost:3001/api/users
+###
+POST http://localhost:3001/api/users
+Content-Type: application/json
+
+{
+    "username": "mz24",
+    "name": "Maaz Ahmad",
+    "password": "24052004"
 }

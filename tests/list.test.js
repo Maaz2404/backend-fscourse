@@ -1,6 +1,6 @@
-const { test, after, beforeEach, before } = require('node:test')
+const { test, after, beforeEach, describe } = require('node:test')
 const assert = require('node:assert')
-const listHelper = require('../utils/list_helper')
+
 const app = require('../app')
 const supertest = require('supertest')
 const mongoose = require('mongoose')
@@ -92,6 +92,51 @@ const response = await api
   const blogsAtEnd = await api.get('/api/blogs')
   assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length)
   assert.strictEqual(response.body.error, 'title or url missing')
+})
+
+describe('deleting a blog', () => {
+  test('deleteing a blog with correct id', async () => {
+    const blogsAtStart = await api.get('/api/blogs')
+    const blogToDelete = blogsAtStart.body[0]
+    await api.delete(`/api/blogs/${blogToDelete.id}`)
+      .expect(204)
+    const blogsAtEnd = await api.get('/api/blogs')
+    assert.strictEqual(blogsAtEnd.body.length, initialBlogs.length - 1)
+    const titles = blogsAtEnd.body.map(blog => blog.title)
+    assert(!titles.includes(blogToDelete.title))
+  })
+  test('returns 404 if blog not found', async () => {
+    const nonExistentId = '123456789012345678901234'
+    const response = await api.delete(`/api/blogs/${nonExistentId}`)
+      .expect(404)
+    assert.strictEqual(response.body.error, 'blog not found')
+  })
+})
+describe('updating a blog', () => {
+  test('updating a blog with correct id', async () => {
+    const blogsAtStart = await api.get('/api/blogs')
+    const blogToUpdate = blogsAtStart.body[0]
+    const updatedBlog = {
+      ...blogToUpdate,
+      likes: blogToUpdate.likes + 1,
+    }
+    await api.put(`/api/blogs/${blogToUpdate.id}`)
+      .send(updatedBlog)
+      .expect(200)
+    const blogsAtEnd = await api.get('/api/blogs')
+    const updatedBlogFromDb = blogsAtEnd.body.find(blog => blog.id === blogToUpdate.id)
+    assert.strictEqual(updatedBlogFromDb.likes, updatedBlog.likes)
+  })
+  test('returns 404 if blog not found', async () => {
+    const nonExistentId = '123456789012345678901234'
+    const updatedBlog = {
+      ...initialBlogs[0],
+      id: nonExistentId,
+      likes: initialBlogs[0].likes + 1,}
+      await api.put(`/api/blogs/${nonExistentId}`)
+        .send(updatedBlog)
+        .expect(404)
+})
 })
 
 after(async () => {
